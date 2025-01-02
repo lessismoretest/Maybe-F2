@@ -4,13 +4,19 @@ struct FileListView: View {
     @ObservedObject var viewModel: FileManagerViewModel
     
     var body: some View {
-        VStack {
+        VStack(spacing: 0) {
+            // 文件类型筛选器
+            FileTypeFilterView(viewModel: viewModel)
+                .padding(.vertical, 8)
+            
+            Divider()
+            
             // 工具栏
             HStack {
                 Button(action: viewModel.toggleSelectAll) {
-                    Text(viewModel.selectedCount == viewModel.files.count ? "取消全选" : "全选")
+                    Text(viewModel.selectedCount == viewModel.filteredFiles.count ? "取消全选" : "全选")
                 }
-                .disabled(viewModel.files.isEmpty)
+                .disabled(viewModel.filteredFiles.isEmpty)
                 
                 Spacer()
                 
@@ -23,7 +29,7 @@ struct FileListView: View {
             .padding(.horizontal)
             
             // 文件列表
-            Table(viewModel.files) {
+            Table(viewModel.filteredFiles) {
                 TableColumn("选择") { file in
                     Toggle("", isOn: Binding(
                         get: { file.isSelected },

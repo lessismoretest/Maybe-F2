@@ -4,6 +4,7 @@ import UniformTypeIdentifiers
 @MainActor
 class FileManagerViewModel: ObservableObject {
     @Published private(set) var files: [FileItem] = []
+    @Published var selectedFileType: FileType = .all
     private let settingsManager: SettingsManager
     private let aiService: AIService
     
@@ -208,6 +209,31 @@ class FileManagerViewModel: ObservableObject {
      */
     var hasCompletedFiles: Bool {
         files.contains { $0.isSelected && $0.status == .completed }
+    }
+    
+    /**
+     * 获取筛选后的文件列表
+     */
+    var filteredFiles: [FileItem] {
+        if selectedFileType == .all {
+            return files
+        }
+        return files.filter { FileType.detect(from: $0.url) == selectedFileType }
+    }
+    
+    /**
+     * 获取每种文件类型的数量
+     */
+    var fileTypeCounts: [FileType: Int] {
+        var counts: [FileType: Int] = [:]
+        counts[.all] = files.count
+        
+        for file in files {
+            let type = FileType.detect(from: file.url)
+            counts[type, default: 0] += 1
+        }
+        
+        return counts
     }
 }
 
