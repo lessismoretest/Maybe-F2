@@ -141,6 +141,74 @@ class FileManagerViewModel: ObservableObject {
             return file
         }
     }
+    
+    /**
+     * 生成新文件名（不修改实际文件）
+     */
+    func generateNewNames() {
+        let pendingFiles = files.enumerated().filter { 
+            $0.element.status == .pending && $0.element.isSelected 
+        }
+        
+        Task {
+            for (index, _) in pendingFiles {
+                await generateNewName(at: index)
+            }
+        }
+    }
+    
+    private func generateNewName(at index: Int) async {
+        guard index < files.count else { return }
+        
+        var updatedFiles = files
+        updatedFiles[index].status = .processing
+        files = updatedFiles
+        
+        do {
+            let newName = try await aiService.generateFileName(for: files[index])
+            
+            guard index < files.count else { return }
+            updatedFiles = files
+            updatedFiles[index].newName = newName
+            updatedFiles[index].status = .completed
+            files = updatedFiles
+        } catch {
+            guard index < files.count else { return }
+            updatedFiles = files
+            updatedFiles[index].status = .error
+            updatedFiles[index].error = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
+            files = updatedFiles
+        }
+    }
+    
+    /**
+     * 应用更改（实际重命名文件）
+     */
+    func applyChanges() {
+        let completedFiles = files.enumerated().filter { 
+            $0.element.status == .completed && $0.element.isSelected 
+        }
+        
+        Task {
+            for (index, _) in completedFiles {
+                do {
+                    try await performRename(for: index)
+                } catch {
+                    var updatedFiles = files
+                    updatedFiles[index].status = .error
+                    updatedFiles[index].error = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
+                    files = updatedFiles
+                }
+            }
+        }
+    }
+    
+    /**
+     * 检查是否有可以应用更改的文件
+     */
+    var hasCompletedFiles: Bool {
+        files.contains { $0.isSelected && $0.status == .completed }
+    }
 }
 
 enum RenameError: LocalizedError {
