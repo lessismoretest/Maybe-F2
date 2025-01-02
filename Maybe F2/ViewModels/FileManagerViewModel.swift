@@ -142,7 +142,7 @@ class FileManagerViewModel: ObservableObject {
             return file
         }
     }
-<<<<<<< HEAD
+
     
     /**
      * 生成新文件名（不修改实际文件）
@@ -236,8 +236,8 @@ class FileManagerViewModel: ObservableObject {
         
         return counts
     }
-=======
->>>>>>> parent of dbfeeb3 (增加应用更改按钮)
+
+
 }
 
 enum RenameError: LocalizedError {
