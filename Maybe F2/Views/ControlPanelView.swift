@@ -20,34 +20,17 @@ struct ControlPanelView: View {
             
             Spacer()
             
-            // 重命名按钮组
-            HStack(spacing: 8) {
-                // AI 重命名按钮
-                Button(action: {
-                    viewModel.generateNewNames()
-                }) {
-                    Text("AI 重命名")
-                        .frame(width: 100)
-                }
-                .buttonStyle(.borderedProminent)
-                .disabled(viewModel.selectedCount == 0 || !viewModel.files.contains { 
-                    $0.isSelected && $0.status == .pending 
-                })
-                
-                // 应用更改按钮
-                Button(action: {
-                    viewModel.applyChanges()
-                }) {
-                    HStack {
-                        Image(systemName: "checkmark")
-                        Text("应用更改")
-                    }
+            // 右侧重命名按钮
+            Button(action: {
+                viewModel.renameAllFiles()
+            }) {
+                Text("一键重命名")
                     .frame(width: 100)
-                }
-                .buttonStyle(.borderedProminent)
-                .tint(.green)
-                .disabled(!viewModel.hasCompletedFiles)
             }
+            .buttonStyle(.borderedProminent)
+            .disabled(viewModel.selectedCount == 0 || !viewModel.files.contains { 
+                $0.isSelected && $0.status == .pending 
+            })
         }
     }
 } 
