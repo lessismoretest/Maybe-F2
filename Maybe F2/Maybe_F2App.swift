@@ -11,7 +11,16 @@ import SwiftUI
 struct Maybe_F2App: App {
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            MainView()
+                .navigationTitle("Maybe F2")
         }
+        .windowStyle(.hiddenTitleBar)
+        .windowResizability(.contentSize)
+        .commands {
+            CommandGroup(replacing: .newItem) { }
+        }
+        .defaultSize(width: 800, height: 600)
+        .windowToolbarStyle(.unified)
+        .defaultPosition(.center)
     }
 }
