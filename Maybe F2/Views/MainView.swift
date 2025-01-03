@@ -13,12 +13,6 @@ struct MainView: View {
     
     var body: some View {
         VStack(spacing: 0) {
-            // 上传区域
-            DropZoneView(viewModel: viewModel)
-                .frame(height: 200)
-            
-            Divider()
-            
             // 文件列表区域
             FileListView(viewModel: viewModel)
             

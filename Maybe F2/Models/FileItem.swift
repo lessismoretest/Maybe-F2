@@ -9,9 +9,10 @@ struct FileItem: Identifiable {
     var error: String?
     var isSelected: Bool = false
     
-    init(url: URL) {
+    init(url: URL, isSelected: Bool = true) {
         self.url = url
         self.originalName = url.lastPathComponent
+        self.isSelected = isSelected
     }
 }
 

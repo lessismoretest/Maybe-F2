@@ -5,6 +5,10 @@ import UniformTypeIdentifiers
 class FileManagerViewModel: ObservableObject {
     @Published private(set) var files: [FileItem] = []
     @Published var selectedFileType: FileType = .all
+    @Published private(set) var processStatus = ProcessStatus()
+    @Published var previewingFile: FileItem?
+    private var processingTask: Task<Void, Never>?
+    
     private let settingsManager: SettingsManager
     private let aiService: AIService
     
@@ -54,11 +58,32 @@ class FileManagerViewModel: ObservableObject {
             $0.element.status == .pending && $0.element.isSelected 
         }
         
-        Task {
+        processStatus.start(totalCount: pendingFiles.count)
+        
+        processingTask = Task {
             for (index, _) in pendingFiles {
+                if Task.isCancelled {
+                    break
+                }
+                
                 await renameFile(at: index)
+                processStatus.complete()
             }
+            processStatus.stop()
         }
+    }
+    
+    func cancelProcessing() {
+        processingTask?.cancel()
+        processingTask = nil
+        processStatus.stop()
+        
+        var updatedFiles = files
+        for (index, file) in files.enumerated() where file.status == .processing {
+            updatedFiles[index].status = .pending
+            updatedFiles[index].error = "已取消"
+        }
+        files = updatedFiles
     }
     
     private func renameFile(at index: Int) async {
@@ -237,6 +262,25 @@ class FileManagerViewModel: ObservableObject {
         return counts
     }
 
+    func showPreview(for file: FileItem) {
+        previewingFile = file
+    }
+    
+    func hidePreview() {
+        previewingFile = nil
+    }
+
+    /**
+     * 修改文件的新名称
+     */
+    func updateNewName(for id: UUID, newName: String) {
+        if let index = files.firstIndex(where: { $0.id == id }) {
+            var updatedFiles = files
+            updatedFiles[index].newName = newName
+            updatedFiles[index].status = .completed
+            files = updatedFiles
+        }
+    }
 
 }
 

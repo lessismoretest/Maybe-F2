@@ -12,8 +12,8 @@ struct DropZoneView: View {
                 .background(Color.gray.opacity(0.1))
             
             VStack {
-                Image(systemName: "arrow.down.doc")
-                    .font(.system(size: 32))
+                Text("\u{1F4E5}")
+                    .font(.system(size: 48))
                 Text("拖拽文件到这里或点击选择文件")
                     .font(.headline)
             }

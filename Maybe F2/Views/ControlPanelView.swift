@@ -22,15 +22,21 @@ struct ControlPanelView: View {
             
             // 右侧重命名按钮
             Button(action: {
-                viewModel.renameAllFiles()
+                if viewModel.processStatus.isProcessing {
+                    viewModel.cancelProcessing()
+                } else {
+                    viewModel.renameAllFiles()
+                }
             }) {
-                Text("一键重命名")
+                Text(viewModel.processStatus.isProcessing ? "停止" : "一键重命名")
                     .frame(width: 100)
             }
             .buttonStyle(.borderedProminent)
-            .disabled(viewModel.selectedCount == 0 || !viewModel.files.contains { 
-                $0.isSelected && $0.status == .pending 
-            })
+            .tint(viewModel.processStatus.isProcessing ? .red : .accentColor)
+            .disabled(!viewModel.processStatus.isProcessing && 
+                     (viewModel.selectedCount == 0 || !viewModel.files.contains { 
+                         $0.isSelected && $0.status == .pending 
+                     }))
         }
     }
 } 
