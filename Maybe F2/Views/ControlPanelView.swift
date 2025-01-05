@@ -25,11 +25,11 @@ struct ControlPanelView: View {
                 if viewModel.processStatus.isProcessing {
                     viewModel.cancelProcessing()
                 } else {
-                    viewModel.renameAllFiles()
+                    viewModel.generateNewNames()
                 }
             }) {
-                Text(viewModel.processStatus.isProcessing ? "停止" : "一键重命名")
-                    .frame(width: 100)
+                Text(viewModel.processStatus.isProcessing ? "停止" : "一键 AI 重命名")
+                    .frame(width: 120)
             }
             .buttonStyle(.borderedProminent)
             .tint(viewModel.processStatus.isProcessing ? .red : .accentColor)
@@ -37,6 +37,15 @@ struct ControlPanelView: View {
                      (viewModel.selectedCount == 0 || !viewModel.files.contains { 
                          $0.isSelected && $0.status == .pending 
                      }))
+            
+            Button(action: {
+                viewModel.applyChanges()
+            }) {
+                Text("应用更改")
+                    .frame(width: 100)
+            }
+            .buttonStyle(.borderedProminent)
+            .disabled(!viewModel.hasCompletedFiles)
         }
     }
 } 

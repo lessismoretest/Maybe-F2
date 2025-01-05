@@ -53,26 +53,6 @@ class FileManagerViewModel: ObservableObject {
         }
     }
     
-    func renameAllFiles() {
-        let pendingFiles = files.enumerated().filter { 
-            $0.element.status == .pending && $0.element.isSelected 
-        }
-        
-        processStatus.start(totalCount: pendingFiles.count)
-        
-        processingTask = Task {
-            for (index, _) in pendingFiles {
-                if Task.isCancelled {
-                    break
-                }
-                
-                await renameFile(at: index)
-                processStatus.complete()
-            }
-            processStatus.stop()
-        }
-    }
-    
     func cancelProcessing() {
         processingTask?.cancel()
         processingTask = nil
@@ -84,33 +64,6 @@ class FileManagerViewModel: ObservableObject {
             updatedFiles[index].error = "已取消"
         }
         files = updatedFiles
-    }
-    
-    private func renameFile(at index: Int) async {
-        guard index < files.count else { return }
-        
-        var updatedFiles = files
-        updatedFiles[index].status = .processing
-        files = updatedFiles
-        
-        do {
-            let newName = try await aiService.generateFileName(for: files[index])
-            
-            guard index < files.count else { return }
-            updatedFiles = files
-            updatedFiles[index].newName = newName
-            updatedFiles[index].status = .completed
-            files = updatedFiles
-            
-            try await performRename(for: index)
-            
-        } catch {
-            guard index < files.count else { return }
-            updatedFiles = files
-            updatedFiles[index].status = .error
-            updatedFiles[index].error = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
-            files = updatedFiles
-        }
     }
     
     private func performRename(for index: Int) async throws {
@@ -177,10 +130,18 @@ class FileManagerViewModel: ObservableObject {
             $0.element.status == .pending && $0.element.isSelected 
         }
         
-        Task {
+        processStatus.start(totalCount: pendingFiles.count)
+        
+        processingTask = Task {
             for (index, _) in pendingFiles {
+                if Task.isCancelled {
+                    break
+                }
+                
                 await generateNewName(at: index)
+                processStatus.complete()
             }
+            processStatus.stop()
         }
     }
     
@@ -216,17 +177,26 @@ class FileManagerViewModel: ObservableObject {
             $0.element.status == .completed && $0.element.isSelected 
         }
         
-        Task {
+        processStatus.start(totalCount: completedFiles.count)
+        
+        processingTask = Task {
             for (index, _) in completedFiles {
+                if Task.isCancelled {
+                    break
+                }
+                
                 do {
                     try await performRename(for: index)
+                    processStatus.complete()
                 } catch {
                     var updatedFiles = files
                     updatedFiles[index].status = .error
                     updatedFiles[index].error = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
                     files = updatedFiles
+                    processStatus.complete()
                 }
             }
+            processStatus.stop()
         }
     }
     
