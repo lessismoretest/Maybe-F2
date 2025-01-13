@@ -4,6 +4,10 @@
   <img src="Maybe F2/Assets.xcassets/AppIcon.appiconset/mac1024.png" alt="Maybe F2 图标" width="128" height="128">
 </div>
 
+**写在前：
+本项目所有代码及文档由有 cursor 编写，由于代码已成屎山😂，改起来实在费时间，很多功能和想法受限，readme 文档 99% 也是 ai 生成，有的功能可能根本没有，懒得改了，就先这样凑活用吧😂。
+对了，AI 需要自备api key。另请勿用于商业用途，仅供学习交流。**
+
 Maybe F2 是一个基于 AI 的智能文件批量重命名工具，专为 macOS 设计。它能够根据文件内容（如图片）自动生成描述性的文件名，让文件管理更加智能和高效。
 
 ## 应用截图
@@ -128,3 +132,5 @@ Maybe F2/
 - 代码符合项目的编码规范
 - 添加适当的测试
 - 更新相关文档
+- 微信
+![alt text](image.png)
