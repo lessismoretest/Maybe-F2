@@ -1,12 +1,23 @@
 import Foundation
 
-struct Settings: Codable {
+struct Settings: Codable, Equatable {
     var aiModel: AIModel = .gemini
     var apiKey: String = ""
     var promptTemplates: [FileType: String] = [
         .image: "这是一张图片，请为其生成一个简短且具描述性的文件名，不要包含特殊字符",
         .pdf: "这是一个PDF文件，请根据其内容生成一个简短且具描述性的文件名，不要包含特殊字符"
     ]
+    
+    var appearanceMode: AppearanceMode = .system
+    var launchAtLogin: Bool = false
+    
+    static func == (lhs: Settings, rhs: Settings) -> Bool {
+        lhs.aiModel == rhs.aiModel &&
+        lhs.apiKey == rhs.apiKey &&
+        lhs.promptTemplates == rhs.promptTemplates &&
+        lhs.appearanceMode == rhs.appearanceMode &&
+        lhs.launchAtLogin == rhs.launchAtLogin
+    }
 }
 
 enum AIModel: String, Codable, CaseIterable {

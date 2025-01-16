@@ -21,18 +21,6 @@ struct FileListView: View {
     
     var body: some View {
         VStack(spacing: 0) {
-            // 工具栏
-            if !viewModel.files.isEmpty {
-                HStack {
-                    FileTypeFilterView(viewModel: viewModel)
-                    Spacer()
-                }
-                .padding(.horizontal)
-                .padding(.vertical, 8)
-                
-                Divider()
-            }
-            
             // 文件列表区域
             ZStack {
                 if viewModel.files.isEmpty {
@@ -75,16 +63,31 @@ struct FileListView: View {
                             .width(30)
                             
                             TableColumn("原文件名", value: \.originalName)
-                            TableColumn("AI 重命名结果") { file in
+                            
+                            TableColumn("新文件名") { file in
                                 EditableText(
-                                    text: file.newName ?? "等待重命名...",
-                                    isEditable: file.newName != nil,
+                                    text: file.newName ?? (file.originalName as NSString).deletingPathExtension,
                                     onSubmit: { newName in
                                         viewModel.updateNewName(for: file.id, newName: newName)
                                     }
                                 )
-                                .foregroundColor(file.newName == nil ? .gray : .primary)
+                                .foregroundColor(file.newName == nil ? .secondary : .primary)
                             }
+                            
+                            TableColumn("新后缀") { file in
+                                FileExtensionPicker(
+                                    fileId: file.id,
+                                    originalExtension: file.originalExtension,
+                                    selectedExtension: Binding(
+                                        get: { file.selectedExtension },
+                                        set: { newValue in
+                                            viewModel.updateExtension(for: file.id, newExtension: newValue)
+                                        }
+                                    )
+                                )
+                            }
+                            .width(100)
+                            
                             TableColumn("状态") { file in
                                 StatusView(status: file.status, error: file.error)
                             }
@@ -181,6 +184,7 @@ struct StatusView: View {
         HStack {
             Image(systemName: status.iconName)
             Text(error ?? status.description)
+                .lineLimit(1)
         }
         .foregroundColor(status.color)
         .help(error ?? status.description)

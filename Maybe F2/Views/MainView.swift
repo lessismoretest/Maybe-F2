@@ -4,6 +4,7 @@ struct MainView: View {
     @StateObject private var settingsManager = SettingsManager()
     @StateObject private var viewModel: FileManagerViewModel
     @AppStorage("appearanceMode") private var appearanceMode: AppearanceMode = .system
+    @State private var showingSettings = false
     
     init() {
         let settingsManager = SettingsManager()
@@ -13,19 +14,40 @@ struct MainView: View {
     
     var body: some View {
         VStack(spacing: 0) {
+            // 顶部工具栏
+            HStack {
+                FileTypeFilterView(viewModel: viewModel)
+                Spacer()
+                Button(action: { showingSettings = true }) {
+                    Image(systemName: "gear")
+                }
+                .sheet(isPresented: $showingSettings) {
+                    SettingsView(settingsManager: settingsManager)
+                }
+            }
+            .padding(.horizontal)
+            .padding(.vertical, 8)
+            
+            Divider()
+            
             // 文件列表区域
             FileListView(viewModel: viewModel)
             
             Divider()
             
-            // 操作区域
+            // 底部操作区域
             ControlPanelView(viewModel: viewModel, settingsManager: settingsManager)
                 .frame(height: 60)
         }
         .padding()
         .frame(minWidth: 600, minHeight: 400)
         .preferredColorScheme(appearanceMode.colorScheme)
-        .background(Color(NSColor.windowBackgroundColor))
+        .onChange(of: settingsManager.settings.appearanceMode) { newMode in
+            appearanceMode = newMode
+        }
+        .onAppear {
+            appearanceMode = settingsManager.settings.appearanceMode
+        }
     }
 }
 

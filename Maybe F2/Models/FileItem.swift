@@ -8,6 +8,21 @@ struct FileItem: Identifiable {
     var status: FileStatus = .pending
     var error: String?
     var isSelected: Bool = false
+    var selectedExtension: String = ""
+    
+    /// 获取原始文件的后缀名
+    var originalExtension: String {
+        (originalName as NSString).pathExtension
+    }
+    
+    /// 获取新文件名的后缀名
+    var newExtension: String {
+        if !selectedExtension.isEmpty {
+            return selectedExtension
+        }
+        guard let newName = newName else { return "" }
+        return (newName as NSString).pathExtension
+    }
     
     init(url: URL, isSelected: Bool = true) {
         self.url = url

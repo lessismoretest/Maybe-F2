@@ -7,6 +7,7 @@ class FileManagerViewModel: ObservableObject {
     @Published var selectedFileType: FileType = .all
     @Published private(set) var processStatus = ProcessStatus()
     @Published var previewingFile: FileItem?
+    @Published var renameMode: RenameMode = .replace
     private var processingTask: Task<Void, Never>?
     
     private let settingsManager: SettingsManager
@@ -67,23 +68,165 @@ class FileManagerViewModel: ObservableObject {
     }
     
     private func performRename(for index: Int) async throws {
-        guard index < files.count,
-              let newName = files[index].newName else { return }
-        
-        let originalURL = files[index].url
-        let newURL = originalURL.deletingLastPathComponent()
-            .appendingPathComponent(newName)
-            .appendingPathExtension(originalURL.pathExtension)
-        
-        if FileManager.default.fileExists(atPath: newURL.path) {
-            throw RenameError.fileExists
+        guard index < files.count else {
+            print("无效的文件索引")
+            throw ConversionError.conversionFailed("无效的文件索引")
         }
         
-        try FileManager.default.moveItem(at: originalURL, to: newURL)
+        let file = files[index]
+        // 如果没有新文件名，使用原文件名（不带后缀）
+        let newName = file.newName ?? (file.originalName as NSString).deletingPathExtension
         
+        // 更新状态为处理中
         var updatedFiles = files
-        updatedFiles[index].url = newURL
+        updatedFiles[index].status = .processing
         files = updatedFiles
+        
+        let originalURL = file.url
+        
+        // 检查源文件是否存在
+        guard FileManager.default.fileExists(atPath: originalURL.path) else {
+            print("源文件不存在：\(originalURL.path)")
+            throw ConversionError.invalidInputFile
+        }
+        
+        print("开始处理文件：\(originalURL.path)")
+        print("新文件名：\(newName)")
+        print("选择的后缀：\(file.selectedExtension)")
+        print("重命名模式：\(renameMode)")
+        
+        // 如果选择了新的后缀名，需要进行格式转换
+        if !file.selectedExtension.isEmpty {
+            do {
+                // 检查目标文件夹是否可写
+                let targetFolder = originalURL.deletingLastPathComponent()
+                print("目标文件夹：\(targetFolder.path)")
+                
+                guard FileManager.default.isWritableFile(atPath: targetFolder.path) else {
+                    print("目标文件夹没有写入权限")
+                    throw ConversionError.targetFolderNotWritable
+                }
+                
+                // 检查磁盘空间
+                if let space = try? FileManager.default.attributesOfFileSystem(forPath: targetFolder.path)[.systemFreeSize] as? Int64,
+                   let fileSize = try? FileManager.default.attributesOfItem(atPath: originalURL.path)[.size] as? Int64 {
+                    if space < fileSize * 2 {
+                        print("磁盘空间不足")
+                        throw ConversionError.insufficientSpace
+                    }
+                }
+                
+                print("开始格式转换...")
+                // 先进行格式转换
+                let convertedURL = try await ConversionService.shared.convert(
+                    input: originalURL,
+                    to: file.selectedExtension
+                )
+                print("转换完成，临时文件：\(convertedURL.path)")
+                
+                // 然后重命名为目标名称
+                let finalURL = convertedURL.deletingLastPathComponent()
+                    .appendingPathComponent(newName)
+                    .appendingPathExtension(file.selectedExtension)
+                print("最终文件路径：\(finalURL.path)")
+                
+                if FileManager.default.fileExists(atPath: finalURL.path) {
+                    print("目标文件已存在")
+                    try? FileManager.default.removeItem(at: convertedURL)
+                    throw ConversionError.targetFileExists(finalURL.lastPathComponent)
+                }
+                
+                // 移动到最终位置
+                try FileManager.default.moveItem(at: convertedURL, to: finalURL)
+                print("文件移动完成")
+                
+                // 根据重命名模式决定是否删除原文件
+                if renameMode == .replace {
+                    print("删除原文件")
+                    do {
+                        if FileManager.default.fileExists(atPath: originalURL.path) {
+                            try FileManager.default.removeItem(at: originalURL)
+                            print("原文件删除成功")
+                        } else {
+                            print("原文件已不存在")
+                        }
+                    } catch {
+                        print("删除原文件失败：\(error.localizedDescription)")
+                    }
+                }
+                
+                // 检查新文件是否存在
+                guard FileManager.default.fileExists(atPath: finalURL.path) else {
+                    throw ConversionError.conversionFailed("转换后的文件未找到")
+                }
+                
+                // 更新文件列表
+                updatedFiles = files
+                updatedFiles[index].url = finalURL
+                updatedFiles[index].status = .completed
+                updatedFiles[index].error = nil
+                files = updatedFiles
+                print("文件列表更新完成")
+            } catch {
+                print("处理失败：\(error.localizedDescription)")
+                // 更新错误状态
+                updatedFiles = files
+                updatedFiles[index].status = .error
+                if let conversionError = error as? ConversionError {
+                    updatedFiles[index].error = conversionError.errorDescription
+                } else {
+                    updatedFiles[index].error = error.localizedDescription
+                }
+                files = updatedFiles
+                
+                throw error
+            }
+        } else {
+            // 如果没有选择新后缀名，只进行重命名
+            let newURL = originalURL.deletingLastPathComponent()
+                .appendingPathComponent(newName)
+                .appendingPathExtension(originalURL.pathExtension)
+            print("新文件路径：\(newURL.path)")
+            
+            if FileManager.default.fileExists(atPath: newURL.path) {
+                print("目标文件已存在")
+                throw ConversionError.targetFileExists(newURL.lastPathComponent)
+            }
+            
+            // 检查文件权限
+            if !FileManager.default.isWritableFile(atPath: originalURL.deletingLastPathComponent().path) {
+                print("目标文件夹没有写入权限")
+                throw ConversionError.targetFolderNotWritable
+            }
+            
+            do {
+                if renameMode == .createNew {
+                    print("创建新文件")
+                    try FileManager.default.copyItem(at: originalURL, to: newURL)
+                } else {
+                    print("替换原文件")
+                    try FileManager.default.moveItem(at: originalURL, to: newURL)
+                }
+                print("文件操作完成")
+                
+                // 更新文件列表
+                updatedFiles = files
+                updatedFiles[index].url = newURL
+                updatedFiles[index].status = .completed
+                updatedFiles[index].error = nil
+                files = updatedFiles
+                print("文件列表更新完成")
+            } catch {
+                print("处理失败：\(error.localizedDescription)")
+                // 更新错误状态
+                updatedFiles = files
+                updatedFiles[index].status = .error
+                updatedFiles[index].error = error.localizedDescription
+                files = updatedFiles
+                
+                throw error
+            }
+        }
     }
     
     /**
@@ -173,22 +316,30 @@ class FileManagerViewModel: ObservableObject {
      * 应用更改（实际重命名文件）
      */
     func applyChanges() {
-        let completedFiles = files.enumerated().filter { 
-            $0.element.status == .completed && $0.element.isSelected 
-        }
+        // 筛选需要处理的文件：已选中且（有新名称或新后缀）
+        let filesToProcess = files.enumerated().filter { _, file in
+            file.isSelected && (!file.selectedExtension.isEmpty || file.newName != nil)
+        }.map { index, file in index }  // 只保留索引
         
-        processStatus.start(totalCount: completedFiles.count)
+        print("开始处理文件，总数：\(filesToProcess.count)")
+        processStatus.start(totalCount: filesToProcess.count)
         
         processingTask = Task {
-            for (index, _) in completedFiles {
+            for index in filesToProcess {
                 if Task.isCancelled {
+                    print("处理被取消")
                     break
                 }
                 
                 do {
+                    print("处理文件 \(index + 1)/\(filesToProcess.count)")
+                    print("文件路径：\(files[index].url.path)")
+                    print("新文件名：\(files[index].newName ?? "")")
+                    print("新后缀：\(files[index].selectedExtension)")
                     try await performRename(for: index)
                     processStatus.complete()
                 } catch {
+                    print("处理失败：\(error.localizedDescription)")
                     var updatedFiles = files
                     updatedFiles[index].status = .error
                     updatedFiles[index].error = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
@@ -197,6 +348,7 @@ class FileManagerViewModel: ObservableObject {
                 }
             }
             processStatus.stop()
+            print("所有文件处理完成")
         }
     }
     
@@ -204,7 +356,12 @@ class FileManagerViewModel: ObservableObject {
      * 检查是否有可以应用更改的文件
      */
     var hasCompletedFiles: Bool {
-        files.contains { $0.isSelected && $0.status == .completed }
+        files.contains { file in 
+            file.isSelected && (
+                file.status == .completed || 
+                (file.status == .pending && (!file.selectedExtension.isEmpty || file.newName != nil))
+            )
+        }
     }
     
     /**
@@ -247,7 +404,25 @@ class FileManagerViewModel: ObservableObject {
         if let index = files.firstIndex(where: { $0.id == id }) {
             var updatedFiles = files
             updatedFiles[index].newName = newName
-            updatedFiles[index].status = .completed
+            // 如果已经是完成状态，改回待处理状态
+            if updatedFiles[index].status == .completed {
+                updatedFiles[index].status = .pending
+            }
+            files = updatedFiles
+        }
+    }
+    
+    /**
+     * 修改文件的新后缀名
+     */
+    func updateExtension(for id: UUID, newExtension: String) {
+        if let index = files.firstIndex(where: { $0.id == id }) {
+            var updatedFiles = files
+            updatedFiles[index].selectedExtension = newExtension
+            // 如果已经是完成状态，改回待处理状态
+            if updatedFiles[index].status == .completed {
+                updatedFiles[index].status = .pending
+            }
             files = updatedFiles
         }
     }

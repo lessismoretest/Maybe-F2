@@ -26,5 +26,9 @@
     <string>需要访问文档文件夹以重命名文件</string>
     <key>NSDesktopFolderUsageDescription</key>
     <string>需要访问桌面文件夹以重命名文件</string>
+    <key>NSFileProviderDomainUsageDescription</key>
+    <string>需要访问文件以进行重命名和格式转换</string>
+    <key>NSFileProviderPresenceUsageDescription</key>
+    <string>需要访问文件以进行重命名和格式转换</string>
 </dict>
 </plist> 
