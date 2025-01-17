@@ -7,7 +7,7 @@ class SettingsManager: ObservableObject {
             applySettings()
         }
     }
-    @Published var selectedSection: SettingsSection = .ai
+    @Published var selectedSection: SettingsSection = .aiModel
     
     private let settingsKey = "AppSettings"
     

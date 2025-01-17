@@ -16,7 +16,7 @@ struct MainView: View {
         VStack(spacing: 0) {
             // 顶部工具栏
             HStack {
-                FileTypeFilterView(viewModel: viewModel)
+                FileTypeFilterView(selectedType: $viewModel.selectedFileType)
                 Spacer()
                 Button(action: { showingSettings = true }) {
                     Image(systemName: "gear")
@@ -47,16 +47,6 @@ struct MainView: View {
         }
         .onAppear {
             appearanceMode = settingsManager.settings.appearanceMode
-        }
-    }
-}
-
-extension AppearanceMode {
-    var colorScheme: ColorScheme? {
-        switch self {
-        case .light: return .light
-        case .dark: return .dark
-        case .system: return nil
         }
     }
 } 

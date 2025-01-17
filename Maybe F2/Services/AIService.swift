@@ -9,16 +9,17 @@ class AIService {
     }
     
     func generateFileName(for file: FileItem) async throws -> String {
-        guard !settingsManager.settings.apiKey.isEmpty else {
+        let model = settingsManager.settings.aiModel
+        guard let apiKey = settingsManager.settings.apiKeys[model], !apiKey.isEmpty else {
             throw AIError.noAPIKey
         }
         
-        let fileType = FileType.detect(from: file.url)
+        let fileType = FileExtensions.category(for: file.url.pathExtension)
         guard let prompt = settingsManager.settings.promptTemplates[fileType] else {
             throw AIError.noPromptTemplate
         }
         
-        let urlString = "\(settingsManager.settings.aiModel.apiEndpoint)?key=\(settingsManager.settings.apiKey)"
+        let urlString = "\(model.apiEndpoint)?key=\(apiKey)"
         guard let url = URL(string: urlString) else {
             throw AIError.invalidURL
         }
@@ -135,6 +136,7 @@ class AIService {
     private func cleanFileName(_ name: String) -> String {
         let illegalCharacters = CharacterSet(charactersIn: ":/\\?%*|\"<>")
         return name.components(separatedBy: illegalCharacters).joined()
+            .trimmingCharacters(in: CharacterSet.whitespacesAndNewlines)
     }
 }
 

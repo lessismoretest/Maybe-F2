@@ -1,71 +1,49 @@
 import Foundation
 
-struct Settings: Codable, Equatable {
-    var aiModel: AIModel = .gemini
-    var apiKey: String = ""
-    var promptTemplates: [FileType: String] = [
-        .image: "这是一张图片，请为其生成一个简短且具描述性的文件名，不要包含特殊字符",
-        .pdf: "这是一个PDF文件，请根据其内容生成一个简短且具描述性的文件名，不要包含特殊字符"
-    ]
+struct Settings: Codable {
+    // 外观设置
+    var appearanceMode: AppearanceMode
+    var launchAtLogin: Bool
     
-    var appearanceMode: AppearanceMode = .system
-    var launchAtLogin: Bool = false
+    // AI 模型设置
+    var aiModel: AIModel
+    var apiKeys: [AIModel: String]
+    var temperature: Double
     
-    static func == (lhs: Settings, rhs: Settings) -> Bool {
-        lhs.aiModel == rhs.aiModel &&
-        lhs.apiKey == rhs.apiKey &&
-        lhs.promptTemplates == rhs.promptTemplates &&
-        lhs.appearanceMode == rhs.appearanceMode &&
-        lhs.launchAtLogin == rhs.launchAtLogin
-    }
-}
-
-enum AIModel: String, Codable, CaseIterable {
-    case gemini = "Gemini"
+    // 转换设置
+    var conversionModels: [FileCategory: AIModel]
+    var promptTemplates: [FileCategory: String]
+    var formatConversions: [FormatConversion]
     
-    var apiEndpoint: String {
-        switch self {
-        case .gemini:
-            return "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent"
-        }
-    }
-}
-
-enum FileType: String, Codable, CaseIterable {
-    case all = "全部"
-    case image = "图片"
-    case pdf = "PDF"
-    case document = "文档"
-    case video = "视频"
-    case audio = "音频"
-    case other = "其他"
+    // 重命名规则
+    var renameRules: [RenameRule]
     
-    static func detect(from url: URL) -> FileType {
-        switch url.pathExtension.lowercased() {
-        case "jpg", "jpeg", "png", "gif", "webp", "heic":
-            return .image
-        case "pdf":
-            return .pdf
-        case "doc", "docx", "txt", "rtf", "pages", "md":
-            return .document
-        case "mp4", "mov", "avi", "mkv":
-            return .video
-        case "mp3", "wav", "aac", "m4a":
-            return .audio
-        default:
-            return .other
-        }
+    init() {
+        self.appearanceMode = .system
+        self.launchAtLogin = false
+        self.aiModel = .gemini_pro
+        self.apiKeys = [:]
+        self.conversionModels = [:]
+        self.promptTemplates = [:]
+        self.temperature = 0.7
+        self.renameRules = []
+        
+        // 设置默认的提示词模板
+        self.promptTemplates = [
+            .image: "这是一张图片，请为其生成一个简短且具描述性的文件名，不要包含特殊字符",
+            .text: "这是一个文本文件，请根据其内容生成一个简短且具描述性的文件名，不要包含特殊字符"
+        ]
+        
+        // 生成所有可能的格式转换组合
+        self.formatConversions = FormatConversion.generateAllPossibleConversions()
     }
     
-    var icon: String {
-        switch self {
-        case .all: return "doc"
-        case .image: return "photo"
-        case .pdf: return "doc.text"
-        case .document: return "doc.text"
-        case .video: return "film"
-        case .audio: return "music.note"
-        case .other: return "questionmark.folder"
+    static var `default`: Settings {
+        var settings = Settings()
+        // 设置默认的转换模型
+        for category in FileCategory.allCases {
+            settings.conversionModels[category] = .gemini_pro
         }
+        return settings
     }
 } 

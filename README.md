@@ -8,11 +8,13 @@ Maybe F2 是一个基于 AI 的智能文件批量重命名工具，专为 macOS 
 ## 应用截图
 
 <div align="center">
-  <img src="./Maybe F2/Screenshots/screenshot-main.png" alt="主界面" width="800">
-  <p><em>主界面 - 文件处理和预览</em></p>
+  <img src="./Maybe F2/Screenshots/home.png" alt="主界面" width="800">
   
-  <img src="./Maybe F2/Screenshots/screenshot-settings.png" alt="设置界面" width="800">
-  <p><em>设置界面 - API 配置和自定义选项</em></p>
+  <img src="./Maybe F2/Screenshots/home2.png" alt="设置界面" width="800">
+  <img src="./Maybe F2/Screenshots/home3.png" alt="设置界面" width="800">
+  <img src="./Maybe F2/Screenshots/renameset.png" alt="设置界面" width="800"> 
+  <img src="./Maybe F2/Screenshots/aiset.png" alt="设置界面" width="800">
+  <img src="./Maybe F2/Screenshots/geshiset.png" alt="设置界面" width="800">
 </div>
 
 ## 功能特点

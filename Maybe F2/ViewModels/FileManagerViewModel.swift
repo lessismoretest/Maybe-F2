@@ -4,7 +4,7 @@ import UniformTypeIdentifiers
 @MainActor
 class FileManagerViewModel: ObservableObject {
     @Published private(set) var files: [FileItem] = []
-    @Published var selectedFileType: FileType = .all
+    @Published var selectedFileType: FileCategory = .all
     @Published private(set) var processStatus = ProcessStatus()
     @Published var previewingFile: FileItem?
     @Published var renameMode: RenameMode = .replace
@@ -371,18 +371,18 @@ class FileManagerViewModel: ObservableObject {
         if selectedFileType == .all {
             return files
         }
-        return files.filter { FileType.detect(from: $0.url) == selectedFileType }
+        return files.filter { FileExtensions.category(for: $0.url.pathExtension) == selectedFileType }
     }
     
     /**
      * 获取每种文件类型的数量
      */
-    var fileTypeCounts: [FileType: Int] {
-        var counts: [FileType: Int] = [:]
+    var fileTypeCounts: [FileCategory: Int] {
+        var counts: [FileCategory: Int] = [:]
         counts[.all] = files.count
         
         for file in files {
-            let type = FileType.detect(from: file.url)
+            let type = FileExtensions.category(for: file.url.pathExtension)
             counts[type, default: 0] += 1
         }
         
@@ -427,6 +427,11 @@ class FileManagerViewModel: ObservableObject {
         }
     }
 
+    // 根据选中的文件类型过滤文件
+    func filteredFiles(_ files: [URL]) -> [URL] {
+        guard selectedFileType != .all else { return files }
+        return files.filter { FileExtensions.category(for: $0.pathExtension) == selectedFileType }
+    }
 }
 
 enum RenameError: LocalizedError {
